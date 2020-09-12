@@ -1,0 +1,486 @@
+diff -Naru replacement_policies/replaceable_entry.hh replacement_policies_new/replaceable_entry.hh
+--- replacement_policies/replaceable_entry.hh	2019-02-26 13:30:16.978098000 -0800
++++ replacement_policies_new/replaceable_entry.hh	2019-02-26 14:01:32.686477000 -0800
+@@ -1,5 +1,6 @@
+ /**
+  * Copyright (c) 2018 Inria
++ * Copyright (c) 2019 Arizona State University
+  * All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+@@ -26,6 +27,7 @@
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  * Authors: Daniel Carvalho
++ *          Xiangyu Guo
+  */
+ 
+ #ifndef __MEM_CACHE_REPLACEMENT_POLICIES_REPLACEABLE_ENTRY_HH__
+@@ -34,11 +36,14 @@
+ #include <cstdint>
+ #include <memory>
+ 
++#include "base/types.hh"
++
+ /**
+  * The replacement data needed by replacement policies. Each replacement policy
+  * should have its own implementation of replacement data.
++ * @note Added tag address as part of the replacement data, for SHiP algorithm.
+  */
+-struct ReplacementData {};
++struct ReplacementData { Addr _tag; };
+ 
+ /**
+  * A replaceable entry is a basic entry in a 2d table-like structure that needs
+diff -Naru replacement_policies/replaceable_entry.hh.orig replacement_policies_new/replaceable_entry.hh.orig
+--- replacement_policies/replaceable_entry.hh.orig	1969-12-31 16:00:00.000000000 -0800
++++ replacement_policies_new/replaceable_entry.hh.orig	2019-02-26 13:59:48.602235000 -0800
+@@ -0,0 +1,104 @@
++/**
++ * Copyright (c) 2018 Inria
++ * Copyright (c) 2019 Arizona State University
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are
++ * met: redistributions of source code must retain the above copyright
++ * notice, this list of conditions and the following disclaimer;
++ * redistributions in binary form must reproduce the above copyright
++ * notice, this list of conditions and the following disclaimer in the
++ * documentation and/or other materials provided with the distribution;
++ * neither the name of the copyright holders nor the names of its
++ * contributors may be used to endorse or promote products derived from
++ * this software without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ *
++ * Authors: Daniel Carvalho
++ *          Xiangyu Guo
++ */
++
++#ifndef __MEM_CACHE_REPLACEMENT_POLICIES_REPLACEABLE_ENTRY_HH__
++#define __MEM_CACHE_REPLACEMENT_POLICIES_REPLACEABLE_ENTRY_HH__
++
++#include <cstdint>
++#include <memory>
++
++#include "base/types.hh"
++
++/**
++ * The replacement data needed by replacement policies. Each replacement policy
++ * should have its own implementation of replacement data.
++ * @note Added tag address as part of the replacement data, for SHiP algorithm.
++ */
++struct ReplacementData { Addr _tag; };
++
++/**
++ * A replaceable entry is a basic entry in a 2d table-like structure that needs
++ * to have replacement functionality. This entry is located in a specific row
++ * and column of the table (set and way in cache nomenclature), which are
++ * stored within the entry itself.
++ *
++ * It contains the replacement data pointer, which must be instantiated by the
++ * replacement policy before being used.
++ * @sa Replacement Policies
++ */
++class ReplaceableEntry
++{
++  private:
++    /**
++     * Set to which this entry belongs.
++     */
++    uint32_t _set;
++
++    /**
++     * Way (relative position within the set) to which this entry belongs.
++     */
++    uint32_t _way;
++
++   public:
++     /**
++      * Replacement data associated to this entry.
++      * It must be instantiated by the replacement policy before being used.
++      */
++     std::shared_ptr<ReplacementData> replacementData;
++
++    /**
++     * Set both the set and way. Should be called only once.
++     *
++     * @param set The set of this entry.
++     * @param way The way of this entry.
++     */
++    void setPosition(const uint32_t set, const uint32_t way) {
++        _set = set;
++        _way = way;
++    }
++
++    /**
++     * Get set number.
++     *
++     * @return The set to which this entry belongs.
++     */
++    uint32_t getSet() const { return _set; }
++
++    /**
++     * Get way number.
++     *
++     * @return The way to which this entry belongs.
++     */
++    uint32_t getWay() const { return _way; }
++};
++
++#endif // __MEM_CACHE_REPLACEMENT_POLICIES_REPLACEABLE_ENTRY_HH_
+diff -Naru replacement_policies/replaceable_entry.hh.rej replacement_policies_new/replaceable_entry.hh.rej
+--- replacement_policies/replaceable_entry.hh.rej	1969-12-31 16:00:00.000000000 -0800
++++ replacement_policies_new/replaceable_entry.hh.rej	2019-02-26 13:06:18.674763000 -0800
+@@ -0,0 +1,33 @@
++--- src/mem/cache/replacement_policies/replaceable_entry.hh	2019-02-07 13:49:53.000000000 -0700
+++++ src/mem/cache/replacement_policies/replaceable_entry.hh	2019-02-07 17:29:35.000000000 -0700
++@@ -1,5 +1,6 @@
++ /**
++  * Copyright (c) 2018 Inria
+++ * Copyright (c) 2019 Arizona State University
++  * All rights reserved.
++  *
++  * Redistribution and use in source and binary forms, with or without
++@@ -26,6 +27,7 @@
++  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++  *
++  * Authors: Daniel Carvalho
+++ *          Xiangyu Guo
++  */
++ 
++ #ifndef __MEM_CACHE_REPLACEMENT_POLICIES_REPLACEABLE_ENTRY_HH__
++@@ -34,11 +36,14 @@
++ #include <cstdint>
++ #include <memory>
++ 
+++#include "base/types.hh"
+++
++ /**
++  * The replacement data needed by replacement policies. Each replacement policy
++  * should have its own implementation of replacement data.
+++ * @note Added tag address as part of the replacement data, for SHiP algorithm.
++  */
++-struct ReplacementData {};
+++struct ReplacementData { Addr _tag; };
++ 
++ /**
++  * A replaceable entry is a basic entry in a 2d table-like structure that needs
+diff -Naru replacement_policies/ReplacementPolicies.py replacement_policies_new/ReplacementPolicies.py
+--- replacement_policies/ReplacementPolicies.py	2019-02-26 13:30:16.978098000 -0800
++++ replacement_policies_new/ReplacementPolicies.py	2019-02-26 16:52:52.965413000 -0800
+@@ -79,11 +79,21 @@
+     cxx_class = 'BRRIPRP'
+     cxx_header = "mem/cache/replacement_policies/brrip_rp.hh"
+     max_RRPV = Param.Int(3, "Maximum RRPV possible")
+-    hit_priority = Param.Bool(False,
++    hit_priority = Param.Bool(True,
+         "Prioritize evicting blocks that havent had a hit recently")
+     btp = Param.Percent(3,
+         "Percentage of blocks to be inserted with long RRPV")
+ 
++class SHiPRP(BaseReplacementPolicy):
++    type = 'SHiPRP'
++    cxx_class = 'SHiPRP'
++    cxx_header = "mem/cache/replacement_policies/ship_rp.hh"
++    max_RRPV = Param.Int(3, "Maximum RRPV possible")
++    hit_priority = Param.Bool(True,
++    "Prioritize evicting blocks that havent had a hit recently")
++    btp = Param.Percent(0,
++        "Percentage of blocks to be inserted with long RRPV")
++
+ class RRIPRP(BRRIPRP):
+     btp = 0
+ 
+diff -Naru replacement_policies/SConscript replacement_policies_new/SConscript
+--- replacement_policies/SConscript	2019-02-26 13:30:16.978098000 -0800
++++ replacement_policies_new/SConscript	2019-02-26 16:15:45.871289000 -0800
+@@ -34,6 +34,7 @@
+ 
+ Source('bip_rp.cc')
+ Source('brrip_rp.cc')
++Source('ship_rp.cc')
+ Source('fifo_rp.cc')
+ Source('lfu_rp.cc')
+ Source('lru_rp.cc')
+diff -Naru replacement_policies/ship_rp.cc replacement_policies_new/ship_rp.cc
+--- replacement_policies/ship_rp.cc	1969-12-31 16:00:00.000000000 -0800
++++ replacement_policies_new/ship_rp.cc	2019-02-26 16:57:16.261495000 -0800
+@@ -0,0 +1,150 @@
++
++#include "mem/cache/replacement_policies/ship_rp.hh"
++
++#include <cassert>
++#include <memory>
++
++#include "base/logging.hh" // For fatal_if
++#include "base/random.hh"
++#include "params/SHiPRP.hh"
++
++//long long signature;
++//unsigned int signature_m;
++std::vector<int> SHCT(16384,0); //16*1024
++
++long long addr_hashFuction(long long addr) {
++	addr &= 0x000FFFFFFFFFFFFF;  //X86_64 uses 52 bits for physical address
++	addr >>= 14; //16kB region for signature
++	addr = addr ^ (addr >> 14) ^ (addr >> 28); // addr[27:14] XOR addr[41:28] XOR addr[51:42]
++	addr &= 0x0000000000003FFF; //for 16kB entries
++
++	return addr;
++}
++
++SHiPRP::SHiPRP(const Params *p)
++	: BaseReplacementPolicy(p),
++	maxRRPV(p->max_RRPV), hitPriority(p->hit_priority), btp(p->btp)
++{
++	fatal_if(maxRRPV <= 0, "max_RRPV should be greater than zero.\n");
++}
++
++void
++SHiPRP::invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
++const
++{
++	std::shared_ptr<SHiPReplData> casted_replacement_data =
++		std::static_pointer_cast<SHiPReplData>(replacement_data);
++
++	// Set RRPV to an invalid distance
++	casted_replacement_data->rrpv = maxRRPV + 1;
++
++	std::static_pointer_cast<SHiPReplData>(replacement_data)->outcome = false;
++}
++
++void
++SHiPRP::touch(const std::shared_ptr<ReplacementData>& replacement_data) const
++{
++	std::shared_ptr<SHiPReplData> casted_replacement_data =
++		std::static_pointer_cast<SHiPReplData>(replacement_data);
++
++	// Update RRPV if not 0 yet
++	// Every hit in HP mode makes the entry the last to be evicted, while
++	// in FP mode a hit makes the entry less likely to be evicted
++	if (hitPriority) {
++		casted_replacement_data->rrpv = 0;
++	}
++	else if (casted_replacement_data->rrpv > 0) {
++		casted_replacement_data->rrpv--;
++	}
++	std::static_pointer_cast<SHiPReplData>(replacement_data)->outcome = true;
++	long long signature = addr_hashFuction(replacement_data->_tag);
++	if (SHCT[signature] < 7) {
++		SHCT[signature]++;
++	}
++}
++
++void
++SHiPRP::reset(const std::shared_ptr<ReplacementData>& replacement_data) const
++{
++	std::shared_ptr<SHiPReplData> casted_replacement_data =
++		std::static_pointer_cast<SHiPReplData>(replacement_data);
++
++	// Reset RRPV
++	// entry equals zero then replacement data is inserted  as intermediate re-reference, otherwise distant re-reference
++	long long signature = addr_hashFuction(replacement_data->_tag);
++	if (SHCT[signature] == 0) {
++		casted_replacement_data->rrpv = maxRRPV;
++	}
++	else {
++		casted_replacement_data->rrpv = 0;
++	}
++
++
++}
++
++ReplaceableEntry*
++SHiPRP::getVictim(const ReplacementCandidates& candidates) const
++{
++	// There must be at least one replacement candidate
++	assert(candidates.size() > 0);
++
++	// Use first candidate as dummy victim
++	ReplaceableEntry* victim = candidates[0];
++
++	// Store victim->rrpv in a variable to improve code readability
++	int victim_RRPV = std::static_pointer_cast<SHiPReplData>(
++		victim->replacementData)->rrpv;
++
++	// Visit all candidates to find victim
++	for (const auto& candidate : candidates) {
++		// Get candidate's rrpv
++		int candidate_RRPV = std::static_pointer_cast<SHiPReplData>(
++			candidate->replacementData)->rrpv;
++
++		// Stop searching for victims if an invalid entry is found
++		if (candidate_RRPV == maxRRPV + 1) {
++			return candidate;
++			// Update victim entry if necessary
++		}
++		else if (candidate_RRPV > victim_RRPV) {
++			victim = candidate;
++			victim_RRPV = candidate_RRPV;
++		}
++	}
++
++	// Get difference of victim's RRPV to the highest possible RRPV in
++	// order to update the RRPV of all the other entries accordingly
++	int diff = maxRRPV - victim_RRPV;
++
++	// No need to update RRPV if there is no difference
++	if (diff > 0) {
++		// Update RRPV of all candidates
++		for (const auto& candidate : candidates) {
++			std::static_pointer_cast<SHiPReplData>(
++				candidate->replacementData)->rrpv += diff;
++		}
++	}
++
++	std::shared_ptr<SHiPReplData> casted_replacement_data = std::static_pointer_cast<SHiPReplData>(victim->replacementData);
++	if (!casted_replacement_data->outcome && casted_replacement_data->rrpv != (maxRRPV + 1)) {
++		long long signature = addr_hashFuction(casted_replacement_data->_tag);
++		if (SHCT[signature] > 0) {
++			SHCT[signature]--;
++		}
++	}
++
++
++	return victim;
++}
++
++std::shared_ptr<ReplacementData>
++SHiPRP::instantiateEntry()
++{
++	return std::shared_ptr<ReplacementData>(new SHiPReplData(maxRRPV));
++}
++
++SHiPRP*
++SHiPRPParams::create()
++{
++	return new SHiPRP(this);
++}
+diff -Naru replacement_policies/ship_rp.hh replacement_policies_new/ship_rp.hh
+--- replacement_policies/ship_rp.hh	1969-12-31 16:00:00.000000000 -0800
++++ replacement_policies_new/ship_rp.hh	2019-02-26 15:49:00.541043000 -0800
+@@ -0,0 +1,112 @@
++
++
++#ifndef __MEM_CACHE_REPLACEMENT_POLICIES_SHIP_RP_HH__
++#define __MEM_CACHE_REPLACEMENT_POLICIES_SHIP_RP_HH__
++
++#include "mem/cache/replacement_policies/base.hh"
++
++struct SHiPRPParams;
++
++class SHiPRP : public BaseReplacementPolicy
++{
++protected:
++	/** SHiP-specific implementation of replacement data. */
++	struct SHiPReplData : ReplacementData
++	{
++		/**
++		 * Re-Reference Interval Prediction Value.
++		 * A value equal to max_RRPV + 1 indicates an invalid entry.
++		 */
++		int rrpv;
++
++		/**
++		* The outcome bit (initially set to zero) is set to one only if the cache line is re-referenced.
++		*/
++		bool outcome;
++
++		/**
++		 * Default constructor. Invalidate data.
++		 */
++		SHiPReplData(const int max_RRPV) : rrpv(max_RRPV + 1),outcome(false) {}
++	};
++
++	/**
++	 * Maximum Re-Reference Prediction Value possible. An entry with this
++	 * value as the rrpv has the longest possible re-reference interval,
++	 * that is, it is likely not to be used in the near future, and is
++	 * among the best eviction candidates.
++	 * A maxRRPV of 1 implies in a NRU.
++	 */
++	const int maxRRPV;
++
++	/**
++	 * The hit priority (HP) policy replaces entries that do not receive cache
++	 * hits over any cache entry that receives a hit, while the frequency
++	 * priority (FP) policy replaces infrequently re-referenced entries.
++	 */
++	const bool hitPriority;
++
++	/**
++	 * Bimodal throtle parameter. Value in the range [0,100] used to decide
++	 * if a new entry is inserted with long or distant re-reference.
++	 */
++	const unsigned btp;
++
++public:
++	/** Convenience typedef. */
++	typedef SHiPRPParams Params;
++
++	/**
++	 * Construct and initiliaze this replacement policy.
++	 */
++	SHiPRP(const Params *p);
++
++	/**
++	 * Destructor.
++	 */
++	~SHiPRP() {}
++
++	/**
++	 * Invalidate replacement data to set it as the next probable victim.
++	 * Set RRPV as the the most distant re-reference.
++	 *
++	 * @param replacement_data Replacement data to be invalidated.
++	 */
++	void invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
++		const override;
++
++	/**
++	 * Touch an entry to update its replacement data.
++	 *
++	 * @param replacement_data Replacement data to be touched.
++	 */
++	void touch(const std::shared_ptr<ReplacementData>& replacement_data) const
++		override;
++
++	/**
++	 * Reset replacement data. Used when an entry is inserted.
++	 * Set RRPV according to the insertion policy used.
++	 *
++	 * @param replacement_data Replacement data to be reset.
++	 */
++	void reset(const std::shared_ptr<ReplacementData>& replacement_data) const
++		override;
++
++	/**
++	 * Find replacement victim using rrpv.
++	 *
++	 * @param cands Replacement candidates, selected by indexing policy.
++	 * @return Replacement entry to be replaced.
++	 */
++	ReplaceableEntry* getVictim(const ReplacementCandidates& candidates) const
++		override;
++
++	/**
++	 * Instantiate a replacement data entry.
++	 *
++	 * @return A shared pointer to the new replacement data.
++	 */
++	std::shared_ptr<ReplacementData> instantiateEntry() override;
++};
++
++#endif // __MEM_CACHE_REPLACEMENT_POLICIES_SHIP_RP_HH__

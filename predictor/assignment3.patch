@@ -1,0 +1,569 @@
+diff -urN gem5/src/cpu/pred/BranchPredictor.py gem5-master/src/cpu/pred/BranchPredictor.py
+--- gem5/src/cpu/pred/BranchPredictor.py	2019-02-07 04:59:11.000000000 -0800
++++ gem5-master/src/cpu/pred/BranchPredictor.py	2019-04-04 22:35:38.989178101 -0700
+@@ -62,6 +62,14 @@
+     localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
+     localCtrBits = Param.Unsigned(2, "Bits per counter")
+ 
++class Local8KBP(LocalBP):
++    localPredictorSize = Param.Unsigned(8192, "Size of local predictor")
++    localCtrBits = Param.Unsigned(2, "Bits per counter")
++
++class Local32KBP(LocalBP):
++    localPredictorSize = Param.Unsigned(32768, "Size of local predictor")
++    localCtrBits = Param.Unsigned(2, "Bits per counter")
++
+ 
+ class TournamentBP(BranchPredictor):
+     type = 'TournamentBP'
+@@ -76,6 +84,23 @@
+     choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
+     choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+ 
++class Tournament8KBP(TournamentBP):
++    localPredictorSize = Param.Unsigned(512, "Size of local predictor")
++    localCtrBits = Param.Unsigned(2, "Bits per counter")
++    localHistoryTableSize = Param.Unsigned(256, "size of local history table")
++    globalPredictorSize = Param.Unsigned(1024, "Size of global predictor")
++    globalCtrBits = Param.Unsigned(2, "Bits per counter")
++    choicePredictorSize = Param.Unsigned(1024, "Size of choice predictor")
++    choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
++
++class Tournament32KBP(TournamentBP):
++    localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
++    localCtrBits = Param.Unsigned(2, "Bits per counter")
++    localHistoryTableSize = Param.Unsigned(1024, "size of local history table")
++    globalPredictorSize = Param.Unsigned(4096, "Size of global predictor")
++    globalCtrBits = Param.Unsigned(2, "Bits per counter")
++    choicePredictorSize = Param.Unsigned(4096, "Size of choice predictor")
++    choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+ 
+ class BiModeBP(BranchPredictor):
+     type = 'BiModeBP'
+@@ -87,6 +112,58 @@
+     choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
+     choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+ 
++class gDACBP(BranchPredictor):
++    type = 'gDACBP'
++    cxx_class = 'gDACBP'
++    cxx_header = "cpu/pred/gdac.hh"
++
++    segmentNum=Param.Unsigned(2,"number of segments")
++    choicePredictorSize = Param.Unsigned(1024, "Size of choice predictor")
++    choiceCtrBits = Param.Unsigned(1.5, "Bits of choice counters")
++    segmentSize1=Param.Unsigned(1024,"entries of segment1")
++    segmentSize2=Param.Unsigned(512,"entries of segment2")
++    segmentSize3=Param.Unsigned(0,"entries of segment2")
++    rootPredictorSize=Param.Unsigned(512,"size of root predictor")
++    rootCtrBits=Param.Unsigned(4,"Bits of root predictor")
++    segmentHistoryLength1=Param.Unsigned(10,"History table length of segment1")
++    segmentHistoryLength2=Param.Unsigned(10,"History table length of segment2")
++    segmentHistoryLength3=Param.Unsigned(0,"History table length of segment3")
++    segmentHistoryLengthTotal=Param.Unsigned(20,"total history table length")
++    globalPredictorSize = Param.Unsigned(1024, "Size of global predictor")
++    globalCtrBits = Param.Unsigned(2, "Bits per counter")
++
++class gDAC8KBP(gDACBP):
++    segmentNum=Param.Unsigned(2,"number of segments")
++    choicePredictorSize = Param.Unsigned(1024, "Size of choice predictor")
++    choiceCtrBits = Param.Unsigned(1.5, "Bits of choice counters")
++    segmentSize1=Param.Unsigned(1024,"entries of segment1")
++    segmentSize2=Param.Unsigned(512,"entries of segment2")
++    segmentSize3=Param.Unsigned(0,"entries of segment2")
++    rootPredictorSize=Param.Unsigned(512,"size of root predictor")
++    rootCtrBits=Param.Unsigned(4,"Bits of root predictor")
++    segmentHistoryLength1=Param.Unsigned(10,"History table length of segment1")
++    segmentHistoryLength2=Param.Unsigned(10,"History table length of segment2")
++    segmentHistoryLength3=Param.Unsigned(0,"History table length of segment3")
++    segmentHistoryLengthTotal=Param.Unsigned(20,"total history table length")
++    globalPredictorSize = Param.Unsigned(1024, "Size of global predictor")
++    globalCtrBits = Param.Unsigned(2, "Bits per counter")
++
++class gDAC32KBP(gDACBP):
++    segmentNum=Param.Unsigned(2,"number of segments")
++    choicePredictorSize = Param.Unsigned(4096, "Size of choice predictor")
++    choiceCtrBits = Param.Unsigned(1.5, "Bits of choice counters")
++    segmentSize1=Param.Unsigned(4096,"entries of segment1")
++    segmentSize2=Param.Unsigned(2048,"entries of segment2")
++    segmentSize3=Param.Unsigned(0,"entries of segment2")
++    rootPredictorSize=Param.Unsigned(2048,"size of root predictor")
++    rootCtrBits=Param.Unsigned(4,"Bits of root predictor")
++    segmentHistoryLength1=Param.Unsigned(12,"History table length of segment1")
++    segmentHistoryLength2=Param.Unsigned(16,"History table length of segment2")
++    segmentHistoryLength3=Param.Unsigned(0,"History table length of segment3")
++    segmentHistoryLengthTotal=Param.Unsigned(28,"total history table length")
++    globalPredictorSize = Param.Unsigned(4096, "Size of global predictor")
++    globalCtrBits = Param.Unsigned(2, "Bits per counter")
++
+ class TAGEBase(SimObject):
+     type = 'TAGEBase'
+     cxx_class = 'TAGEBase'
+diff -urN gem5/src/cpu/pred/gdac.cc gem5-master/src/cpu/pred/gdac.cc
+--- gem5/src/cpu/pred/gdac.cc	1969-12-31 16:00:00.000000000 -0800
++++ gem5-master/src/cpu/pred/gdac.cc	2019-04-05 21:18:33.711083000 -0700
+@@ -0,0 +1,273 @@
++
++
++#include "cpu/pred/gdac.hh"
++
++#include "base/bitfield.hh"
++#include "base/intmath.hh"
++
++gDACBP::gDACBP(const gDACBPParams *params)
++	: BPredUnit(params),
++	globalHistoryReg(params->numThreads, 0),
++	globalHistoryBits(ceilLog2(params->globalPredictorSize)),
++	choicePredictorSize(params->choicePredictorSize),
++	choiceCtrBits1(params->choiceCtrBits),
++	globalPredictorSize(params->globalPredictorSize),
++	globalCtrBits(params->globalCtrBits),
++	segmentNum(params->segmentNum),
++	segmentSize1(params->segmentSize1),
++	segmentSize2(params->segmentSize2),
++	segmentSize3(params->segmentSize3),
++	rootPredictorSize(params->rootPredictorSize),
++	rootCtrBits(params->rootCtrBits),
++	segmentHistoryLength1(params->segmentHistoryLength1),
++	segmentHistoryLength2(params->segmentHistoryLength2),
++	segmentHistoryLength3(params->segmentHistoryLength3),
++	segmentHistoryLengthTotal(params->segmentHistoryLengthTotal)
++{
++	if (!isPowerOf2(choicePredictorSize))
++		fatal("Invalid choice predictor size.\n");
++	if (!isPowerOf2(globalPredictorSize))
++		fatal("Invalid global history predictor size.\n");
++	choiceCtrBits = globalCtrBits;
++	choiceCounters.resize(choicePredictorSize);
++	rootCounters.resize(rootPredictorSize);
++	takenCounters.resize(globalPredictorSize);
++	notTakenCounters.resize(globalPredictorSize);
++
++	for (int i = 0; i < choicePredictorSize; ++i) {
++		choiceCounters[i].setBits(choiceCtrBits);
++	}
++	for (int i = 0; i < globalPredictorSize; ++i) {
++		takenCounters[i].setBits(globalCtrBits);
++		notTakenCounters[i].setBits(globalCtrBits);
++	}
++	for (int i = 0; i < rootPredictorSize; ++i) {
++		rootCounters[i].setBits(rootCtrBits);
++	}
++	
++	takenCounters1.resize(segmentSize1);
++	notTakenCounters1.resize(segmentSize1);
++	takenCounters2.resize(segmentSize2);
++	notTakenCounters2.resize(segmentSize2);
++
++	for (int i = 0; i < segmentSize1; ++i) {
++		takenCounters1[i].setBits(globalCtrBits);
++		notTakenCounters1[i].setBits(globalCtrBits);
++	}
++
++	for (int i = 0; i < segmentSize2; ++i) {
++		takenCounters2[i].setBits(globalCtrBits);
++		notTakenCounters2[i].setBits(globalCtrBits);
++	}
++
++
++	historyRegisterMask = mask(globalHistoryBits);
++	choiceHistoryMask = choicePredictorSize - 1;
++	globalHistoryMask = globalPredictorSize - 1;
++	segmentMask1 = segmentSize1 - 1;
++	segmentMask2 = segmentSize2 - 1;
++
++	choiceThreshold = (ULL(1) << (choiceCtrBits - 1)) - 1;
++	takenThreshold = (ULL(1) << (globalCtrBits - 1)) - 1;
++	notTakenThreshold = (ULL(1) << (globalCtrBits - 1)) - 1;
++}
++
++/*
++ * For an unconditional branch we set its history such that
++ * everything is set to taken. I.e., its choice predictor
++ * chooses the taken array and the taken array predicts taken.
++ */
++void
++gDACBP::uncondBranch(ThreadID tid, Addr pc, void * &bpHistory)
++{
++	BPHistory *history = new BPHistory;
++	history->globalHistoryReg = globalHistoryReg[tid];
++	history->takenUsed = true;
++	history->takenPred = true;
++	history->notTakenPred = true;
++	history->finalPred = true;
++	bpHistory = static_cast<void*>(history);
++	updateGlobalHistReg(tid, true);
++}
++
++void
++gDACBP::squash(ThreadID tid, void *bpHistory)
++{
++	BPHistory *history = static_cast<BPHistory*>(bpHistory);
++	globalHistoryReg[tid] = history->globalHistoryReg;
++
++	delete history;
++}
++
++/*
++ * Here we lookup the actual branch prediction. We use the PC to
++ * identify the bias of a particular branch, which is based on the
++ * prediction in the choice array. A hash of the global history
++ * register and a branch's PC is used to index into both the taken
++ * and not-taken predictors, which both present a prediction. The
++ * choice array's prediction is used to select between the two
++ * direction predictors for the final branch prediction.
++ */
++bool
++gDACBP::lookup(ThreadID tid, Addr branchAddr, void * &bpHistory)
++{
++	unsigned choiceHistoryIdx = ((branchAddr >> instShiftAmt)
++		& choiceHistoryMask);
++	unsigned globalHistoryIdx = (((branchAddr >> instShiftAmt)
++		^ globalHistoryReg[tid])
++		& globalHistoryMask);
++	unsigned globalHistoryIdx1 = (((branchAddr >> instShiftAmt)
++		^ globalHistoryReg[tid])
++		& segmentMask1);
++	unsigned globalHistoryIdx2 = (((branchAddr >> instShiftAmt)
++		^ globalHistoryReg[tid])
++		& segmentMask2);
++
++	assert(choiceHistoryIdx < choicePredictorSize);
++	assert(globalHistoryIdx < globalPredictorSize);
++
++	bool choicePrediction = choiceCounters[choiceHistoryIdx].read()
++	> choiceThreshold;
++	bool takenGHBPrediction = takenCounters[globalHistoryIdx].read()
++	> takenThreshold;
++	bool notTakenGHBPrediction = notTakenCounters[globalHistoryIdx].read()
++	> notTakenThreshold;
++	bool finalPrediction;
++	bool takenGHBPrediction1 = takenCounters1[globalHistoryIdx1].read()
++	> takenThreshold;
++	bool notTakenGHBPrediction1 = notTakenCounters1[globalHistoryIdx1].read()
++	> notTakenThreshold;
++	bool takenGHBPrediction2 = takenCounters2[globalHistoryIdx2].read()
++	> takenThreshold;
++	bool notTakenGHBPrediction2 = notTakenCounters2[globalHistoryIdx2].read()
++	> notTakenThreshold;
++
++	BPHistory *history = new BPHistory;
++	history->globalHistoryReg = globalHistoryReg[tid];
++	history->takenUsed = choicePrediction;
++	history->takenPred = takenGHBPrediction;
++	history->notTakenPred = notTakenGHBPrediction;
++	bool finalPrediction1;
++	bool finalPrediction2;
++
++	if (choicePrediction) {
++		finalPrediction = takenGHBPrediction;
++	}
++	else {
++		finalPrediction = notTakenGHBPrediction;
++	}
++	if (choicePrediction) {
++		finalPrediction1 = takenGHBPrediction1;
++	}
++	else {
++		finalPrediction1 = notTakenGHBPrediction1;
++	}
++	if (choicePrediction) {
++		finalPrediction2 = takenGHBPrediction2;
++	}
++	else {
++		finalPrediction2 = notTakenGHBPrediction2;
++	}
++	index = (globalHistoryIdx1 ^ branchAddr)&((rootPredictorSize >> 2) - 1);
++	index = (index << 1) | finalPrediction2;
++	index = (index << 1) | finalPrediction1;
++
++
++	history->finalPred = finalPrediction;
++	bpHistory = static_cast<void*>(history);
++	updateGlobalHistReg(tid, finalPrediction);
++
++	return finalPrediction;
++}
++
++void
++gDACBP::btbUpdate(ThreadID tid, Addr branchAddr, void * &bpHistory)
++{
++	globalHistoryReg[tid] &= (historyRegisterMask & ~ULL(1));
++}
++
++/* Only the selected direction predictor will be updated with the final
++ * outcome; the status of the unselected one will not be altered. The choice
++ * predictor is always updated with the branch outcome, except when the
++ * choice is opposite to the branch outcome but the selected counter of
++ * the direction predictors makes a correct final prediction.
++ */
++void
++gDACBP::update(ThreadID tid, Addr branchAddr, bool taken, void *bpHistory,
++	bool squashed, const StaticInstPtr & inst, Addr corrTarget)
++{
++	assert(bpHistory);
++
++	BPHistory *history = static_cast<BPHistory*>(bpHistory);
++
++	// We do not update the counters speculatively on a squash.
++	// We just restore the global history register.
++	if (squashed) {
++		globalHistoryReg[tid] = (history->globalHistoryReg << 1) | taken;
++		return;
++	}
++
++	unsigned choiceHistoryIdx = ((branchAddr >> instShiftAmt)
++		& choiceHistoryMask);
++	unsigned globalHistoryIdx = (((branchAddr >> instShiftAmt)
++		^ history->globalHistoryReg)
++		& globalHistoryMask);
++
++	assert(choiceHistoryIdx < choicePredictorSize);
++	assert(globalHistoryIdx < globalPredictorSize);
++
++	if (history->takenUsed) {
++		// if the taken array's prediction was used, update it
++		if (taken) {
++			takenCounters[globalHistoryIdx].increment();
++		}
++		else {
++			takenCounters[globalHistoryIdx].decrement();
++		}
++	}
++	else {
++		// if the not-taken array's prediction was used, update it
++		if (taken) {
++			notTakenCounters[globalHistoryIdx].increment();
++		}
++		else {
++			notTakenCounters[globalHistoryIdx].decrement();
++		}
++	}
++
++	if (history->finalPred == taken) {
++		if (history->finalPred == history->takenUsed) {
++			if (taken) {
++				choiceCounters[choiceHistoryIdx].increment();
++			}
++			else {
++				choiceCounters[choiceHistoryIdx].decrement();
++			}
++		}
++	}
++	else {
++		// always update the choice predictor on an incorrect prediction
++		if (taken) {
++			choiceCounters[choiceHistoryIdx].increment();
++		}
++		else {
++			choiceCounters[choiceHistoryIdx].decrement();
++		}
++	}
++
++	delete history;
++}
++
++void
++gDACBP::updateGlobalHistReg(ThreadID tid, bool taken)
++{
++	globalHistoryReg[tid] = taken ? (globalHistoryReg[tid] << 1) | 1 :
++		(globalHistoryReg[tid] << 1);
++	globalHistoryReg[tid] &= historyRegisterMask;
++}
++
++gDACBP*
++gDACBPParams::create()
++{
++	return new gDACBP(this);
++}
+diff -urN gem5/src/cpu/pred/gdac_counter.hh gem5-master/src/cpu/pred/gdac_counter.hh
+--- gem5/src/cpu/pred/gdac_counter.hh	1969-12-31 16:00:00.000000000 -0800
++++ gem5-master/src/cpu/pred/gdac_counter.hh	2019-04-05 20:08:02.829965000 -0700
+@@ -0,0 +1,80 @@
++
++
++#ifndef __CPU_PRED_GDAC_COUNTER_HH__
++#define __CPU_PRED_GDAC_COUNTER_HH__
++
++#include "base/logging.hh"
++#include "base/types.hh"
++#include <vector>
++class gDACCounter
++{
++public:
++	gDACCounter(unsigned int newsize)
++	{
++		size = newsize;
++		direction.resize(newsize);
++		hysteresis.resize(newsize / 2);
++
++	}
++	gDACCounter()
++		:size(0),max(0)
++	{
++		direction.resize(10);
++		hysteresis.resize(5);
++	}
++	
++	void resize(unsigned int newsize)
++	{
++		size = newsize;
++		direction.resize(newsize);
++		hysteresis.resize(newsize / 2);
++		
++	}
++	void reset() { size = 0; }
++
++	
++	void setBits(unsigned bits) { max = (1 << bits) - 1; }
++	/**
++	 * Increments the counter's current value.
++	 */
++	void increment(unsigned index)
++	{
++		if (hysteresis.at(index/2) < max) {
++			hysteresis.at(index/2)++;
++		}
++		else {
++			hysteresis.at(index / 2) = 0;
++			if (direction.at(index) < max) {
++				direction.at(index)++;
++			}
++		}
++		
++	}
++
++	/**
++	 * Decrements the counter's current value.
++	 */
++	void decrement(unsigned index)
++	{
++		if (hysteresis.at(index/2) > 0) {
++			hysteresis.at(index/2)--;
++		}
++	}
++
++	/**
++	 * Read the counter's value.
++	 */
++	bool predict(unsigned index) 
++	{
++		return direction.at(index);
++	}
++
++private:
++	unsigned int size;
++	std::vector<uint8_t> direction;
++	std::vector<uint8_t> hysteresis;
++	uint8_t max;
++
++};
++
++#endif // __CPU_PRED_GDAC_COUNTER_HH__
+diff -urN gem5/src/cpu/pred/gdac.hh gem5-master/src/cpu/pred/gdac.hh
+--- gem5/src/cpu/pred/gdac.hh	1969-12-31 16:00:00.000000000 -0800
++++ gem5-master/src/cpu/pred/gdac.hh	2019-04-05 21:15:09.378110000 -0700
+@@ -0,0 +1,92 @@
++
++
++#ifndef __CPU_PRED_GDAC_PRED_HH__
++#define __CPU_PRED_GDAC_PRED_HH__
++
++#include "cpu/pred/bpred_unit.hh"
++#include "cpu/pred/sat_counter.hh"
++#include "params/gDACBP.hh"
++
++
++class gDACBP : public BPredUnit
++{
++public:
++	gDACBP(const gDACBPParams *params);
++	void uncondBranch(ThreadID tid, Addr pc, void * &bp_history);
++	void squash(ThreadID tid, void *bp_history);
++	bool lookup(ThreadID tid, Addr branch_addr, void * &bp_history);
++	void btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history);
++	void update(ThreadID tid, Addr branch_addr, bool taken, void *bp_history,
++		bool squashed, const StaticInstPtr & inst, Addr corrTarget);
++
++private:
++	void updateGlobalHistReg(ThreadID tid, bool taken);
++
++	struct BPHistory {
++		unsigned globalHistoryReg;
++		// was the taken array's prediction used?
++		// true: takenPred used
++		// false: notPred used
++		bool takenUsed;
++		// prediction of the taken array
++		// true: predict taken
++		// false: predict not-taken
++		bool takenPred;
++		// prediction of the not-taken array
++		// true: predict taken
++		// false: predict not-taken
++		bool notTakenPred;
++		// the final taken/not-taken prediction
++		// true: predict taken
++		// false: predict not-taken
++		bool finalPred;
++	};
++
++	// choice predictors
++	std::vector<SatCounter> choiceCounters;
++	std::vector<SatCounter> rootCounters;
++	// taken direction predictors
++	std::vector<SatCounter> takenCounters;
++	// not-taken direction predictors
++	std::vector<SatCounter> notTakenCounters;
++	// taken direction predictors
++	std::vector<SatCounter> takenCounters1;
++	// not-taken direction predictors
++	std::vector<SatCounter> notTakenCounters1;
++	// taken direction predictors
++	std::vector<SatCounter> takenCounters2;
++	// not-taken direction predictors
++	std::vector<SatCounter> notTakenCounters2;
++
++	std::vector<unsigned> globalHistoryReg;
++	unsigned globalHistoryBits;
++	unsigned historyRegisterMask;
++
++	unsigned choicePredictorSize;
++	unsigned choiceCtrBits;
++	unsigned choiceCtrBits1;
++	unsigned choiceHistoryMask;
++	unsigned globalPredictorSize;
++	unsigned globalCtrBits;
++	unsigned globalHistoryMask;
++	unsigned segmentMask1;
++	unsigned segmentMask2;
++	unsigned segmentNum;
++	unsigned segmentSize1;
++	unsigned segmentSize2;
++	unsigned segmentSize3;
++	unsigned rootPredictorSize;
++	unsigned rootCtrBits;
++	unsigned segmentHistoryLength1;
++	unsigned segmentHistoryLength2;
++	unsigned segmentHistoryLength3;
++	unsigned segmentHistoryLengthTotal;
++
++
++	unsigned choiceThreshold;
++	unsigned takenThreshold;
++	unsigned notTakenThreshold;
++	unsigned index;
++};
++
++#endif // __CPU_PRED_GDAC_PRED_HH__
+diff -urN gem5/src/cpu/pred/SConscript gem5-master/src/cpu/pred/SConscript
+--- gem5/src/cpu/pred/SConscript	2019-02-07 04:59:11.000000000 -0800
++++ gem5-master/src/cpu/pred/SConscript	2019-04-04 18:50:36.170291933 -0700
+@@ -43,6 +43,7 @@
+ Source('ras.cc')
+ Source('tournament.cc')
+ Source ('bi_mode.cc')
++Source('gdac.cc')
+ Source('tage_base.cc')
+ Source('tage.cc')
+ Source('loop_predictor.cc')
